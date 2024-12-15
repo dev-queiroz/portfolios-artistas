@@ -47,6 +47,18 @@ router.post("/", authenticate, upload.single("image"), async (req, res) => {
   }
 });
 
+router.get("/", async (req, res) => {
+  try {
+    const { data, error } = await supabase.from("arts").select("*");
+
+    if (error) throw error;
+
+    res.json(data);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 router.put("/:id", authenticate, async (req, res) => {
   try {
     const { id } = req.params;
