@@ -2,17 +2,27 @@ const express = require("express");
 const router = express.Router();
 const supabase = require("../db/supabaseClient");
 const multer = require("multer");
+require("dotenv").config();
 
-// Configuração do Multer para tratar o upload do arquivo
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
+
+const authenticate = (req, res, next) => {
+  const { password } = req.body;
+  if (password !== ADMIN_PASSWORD) {
+    return res
+      .status(403)
+      .json({ error: "Senha incorreta. Ação não autorizada." });
+  }
+  next();
+};
+
 const upload = multer({ storage: multer.memoryStorage() });
 
-// 📤 Upload de imagem e criação de nova arte
-router.post("/", upload.single("image"), async (req, res) => {
+router.post("/", authenticate, upload.single("image"), async (req, res) => {
   try {
     const { title, description } = req.body;
     const imageFile = req.file;
 
-    // Fazendo o upload para o Supabase Storage
     const fileName = `${Date.now()}_${imageFile.originalname}`;
     const { data, error } = await supabase.storage
       .from("art-images")
@@ -24,7 +34,6 @@ router.post("/", upload.single("image"), async (req, res) => {
 
     const imageUrl = `${process.env.SUPABASE_URL}/storage/v1/object/public/art-images/${data.path}`;
 
-    // Inserindo a nova arte no banco de dados através do Supabase
     const { data: art, error: insertError } = await supabase
       .from("arts")
       .insert([{ title, image_url: imageUrl, description }])
@@ -38,39 +47,7 @@ router.post("/", upload.single("image"), async (req, res) => {
   }
 });
 
-// 📝 GET todas as artes
-router.get("/", async (req, res) => {
-  try {
-    const { data, error } = await supabase.from("arts").select("*");
-
-    if (error) throw error;
-
-    res.json(data);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// 📥 GET uma arte por ID
-router.get("/:id", async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { data, error } = await supabase
-      .from("arts")
-      .select("*")
-      .eq("id", id)
-      .single();
-
-    if (error) throw error;
-
-    res.json(data);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// ✏️ UPDATE arte por ID
-router.put("/:id", async (req, res) => {
+router.put("/:id", authenticate, async (req, res) => {
   try {
     const { id } = req.params;
     const { title, image_url, description } = req.body;
@@ -88,8 +65,7 @@ router.put("/:id", async (req, res) => {
   }
 });
 
-// ❌ DELETE arte por ID
-router.delete("/:id", async (req, res) => {
+router.delete("/:id", authenticate, async (req, res) => {
   try {
     const { id } = req.params;
     const { error } = await supabase.from("arts").delete().eq("id", id);
