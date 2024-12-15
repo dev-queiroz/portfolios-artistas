@@ -59,13 +59,28 @@ router.get("/", async (req, res) => {
   }
 });
 
-router.put("/:id", authenticate, async (req, res) => {
+router.put("/:id", authenticate, upload.single("image"), async (req, res) => {
   try {
     const { id } = req.params;
-    const { title, image_url, description } = req.body;
+    const { title, description } = req.body;
+    let imageUrl = req.body.image_url;
+
+    if (req.file) {
+      const fileName = `${Date.now()}_${req.file.originalname}`;
+      const { data, error } = await supabase.storage
+        .from("art-images")
+        .upload(fileName, req.file.buffer, {
+          contentType: req.file.mimetype,
+        });
+
+      if (error) throw error;
+
+      imageUrl = `${process.env.SUPABASE_URL}/storage/v1/object/public/art-images/${data.path}`;
+    }
+
     const { data, error } = await supabase
       .from("arts")
-      .update({ title, image_url, description })
+      .update({ title, image_url: imageUrl, description })
       .eq("id", id)
       .single();
 
