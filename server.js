@@ -11,7 +11,12 @@ app.use(express.json());
 // Rotas de artes
 app.use("/api/arts", artsRoutes);
 
+// Rota para ping
+app.get("/", (req, res) => {
+  res.send("Hello World!");
+});
+
 // Iniciando o servidor
 app.listen(port, () => {
-  console.log(`Servidor rodando em http://localhost:${port}`);
+  console.log(`Servidor rodando na porta ${port}`);
 });
