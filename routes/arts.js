@@ -4,21 +4,9 @@ const supabase = require("../db/supabaseClient");
 const multer = require("multer");
 require("dotenv").config();
 
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
-
-const authenticate = (req, res, next) => {
-  const { password } = req.body;
-  if (password !== ADMIN_PASSWORD) {
-    return res
-      .status(403)
-      .json({ error: "Senha incorreta. Ação não autorizada." });
-  }
-  next();
-};
-
 const upload = multer({ storage: multer.memoryStorage() });
 
-router.post("/", authenticate, upload.single("image"), async (req, res) => {
+router.post("/", upload.single("image"), async (req, res) => {
   try {
     const { title, description } = req.body;
     const imageFile = req.file;
@@ -59,7 +47,7 @@ router.get("/", async (req, res) => {
   }
 });
 
-router.put("/:id", authenticate, upload.single("image"), async (req, res) => {
+router.put("/:id", upload.single("image"), async (req, res) => {
   try {
     const { id } = req.params;
     const { title, description } = req.body;
@@ -92,7 +80,7 @@ router.put("/:id", authenticate, upload.single("image"), async (req, res) => {
   }
 });
 
-router.delete("/:id", authenticate, async (req, res) => {
+router.delete("/:id", async (req, res) => {
   try {
     const { id } = req.params;
     const { error } = await supabase.from("arts").delete().eq("id", id);
